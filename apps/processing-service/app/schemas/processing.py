@@ -36,3 +36,4 @@ class PipelineStatus(BaseModel):
     pipeline_state: str
     active_detectors: list[str]
     output_topics: list[str]
+    consumer_enabled: bool

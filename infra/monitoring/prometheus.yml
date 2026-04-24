@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "ingestion-service"
+    static_configs:
+      - targets: ["ingestion-service:8001"]
+  - job_name: "processing-service"
+    static_configs:
+      - targets: ["processing-service:8002"]
+  - job_name: "query-service"
+    static_configs:
+      - targets: ["query-service:8003"]
+  - job_name: "ai-rca-service"
+    static_configs:
+      - targets: ["ai-rca-service:8004"]

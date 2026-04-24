@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opsyra
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opsyra-config
+  namespace: opsyra
+data:
+  DATABASE_URL: postgresql+psycopg://opsyra:opsyra@postgres:5432/opsyra
+  REDIS_URL: redis://redis:6379/0
+  TELEMETRY_STREAM_NAME: telemetry.raw
+  PROCESSING_ENABLE_CONSUMER: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingestion-service
+  namespace: opsyra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ingestion-service
+  template:
+    metadata:
+      labels:
+        app: ingestion-service
+    spec:
+      containers:
+        - name: ingestion-service
+          image: opsyra/ingestion-service:latest
+          ports:
+            - containerPort: 8001
+          envFrom:
+            - configMapRef:
+                name: opsyra-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: processing-service
+  namespace: opsyra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: processing-service
+  template:
+    metadata:
+      labels:
+        app: processing-service
+    spec:
+      containers:
+        - name: processing-service
+          image: opsyra/processing-service:latest
+          ports:
+            - containerPort: 8002
+          envFrom:
+            - configMapRef:
+                name: opsyra-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: query-service
+  namespace: opsyra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: query-service
+  template:
+    metadata:
+      labels:
+        app: query-service
+    spec:
+      containers:
+        - name: query-service
+          image: opsyra/query-service:latest
+          ports:
+            - containerPort: 8003
+          envFrom:
+            - configMapRef:
+                name: opsyra-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-rca-service
+  namespace: opsyra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-rca-service
+  template:
+    metadata:
+      labels:
+        app: ai-rca-service
+    spec:
+      containers:
+        - name: ai-rca-service
+          image: opsyra/ai-rca-service:latest
+          ports:
+            - containerPort: 8004
+          envFrom:
+            - configMapRef:
+                name: opsyra-config

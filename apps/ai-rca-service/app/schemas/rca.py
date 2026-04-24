@@ -5,15 +5,15 @@ from pydantic import BaseModel, Field
 
 class RCARequest(BaseModel):
     incident_id: str = Field(..., min_length=3, max_length=50)
-    service_name: str = Field(..., min_length=2, max_length=100)
-    signal_summary: str = Field(..., min_length=10, max_length=2000)
-    suspected_component: str = Field(..., min_length=2, max_length=100)
-    severity: Literal["low", "medium", "high", "critical"]
+    service_name: str | None = Field(default=None, min_length=2, max_length=100)
+    signal_summary: str | None = Field(default=None, min_length=10, max_length=2000)
+    suspected_component: str | None = Field(default=None, min_length=2, max_length=100)
+    severity: Literal["low", "medium", "high", "critical"] | None = None
 
     model_config = {
         "json_schema_extra": {
             "example": {
-                "incident_id": "inc_1001",
+                "incident_id": "8fc6255b-e5aa-4a37-8450-31b65867c34f",
                 "service_name": "payments-service",
                 "signal_summary": "Latency and error rates increased immediately after a deploy.",
                 "suspected_component": "postgres-primary",
@@ -25,6 +25,8 @@ class RCARequest(BaseModel):
 
 class RCAResponse(BaseModel):
     incident_id: str
+    provider: str
+    model_name: str
     probable_cause: str
     confidence: float
     remediation_steps: list[str]

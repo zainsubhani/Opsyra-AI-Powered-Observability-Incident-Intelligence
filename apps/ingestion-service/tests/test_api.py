@@ -1,8 +1,11 @@
+from pathlib import Path
 from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 
 from app.main import app
+from opsyra_common.database import SessionLocal, init_database
+from opsyra_common.models import TelemetryEventRecord
 
 
 client = TestClient(app)
@@ -16,6 +19,7 @@ def test_healthcheck() -> None:
 
 
 def test_ingest_events() -> None:
+    init_database()
     payload = {
         "events": [
             {
@@ -35,3 +39,10 @@ def test_ingest_events() -> None:
     body = response.json()
     assert body["accepted_events"] == 1
     assert body["queued_topic"] == "telemetry.raw"
+    assert body["queue_status"] in {"published", "stored"}
+
+    db = SessionLocal()
+    try:
+        assert db.query(TelemetryEventRecord).count() >= 1
+    finally:
+        db.close()

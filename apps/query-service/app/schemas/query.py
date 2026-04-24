@@ -16,6 +16,16 @@ class IncidentListResponse(BaseModel):
     total: int
 
 
+class IncidentDetailResponse(BaseModel):
+    incident_id: str
+    service_name: str
+    severity: Literal["low", "medium", "high", "critical"]
+    status: Literal["open", "investigating", "resolved"]
+    title: str
+    summary: str
+    probable_cause: str | None = None
+
+
 class ServiceOverviewItem(BaseModel):
     service_name: str
     health: Literal["healthy", "degraded", "down"]

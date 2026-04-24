@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from opsyra_common.database import init_database
 
 
 client = TestClient(app)
@@ -14,6 +15,7 @@ def test_healthcheck() -> None:
 
 
 def test_analyze_processing_request() -> None:
+    init_database()
     payload = {
         "service_name": "payments-service",
         "metric_name": "p95_latency_ms",

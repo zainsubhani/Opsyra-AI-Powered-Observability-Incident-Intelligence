@@ -58,6 +58,7 @@ class TelemetryBatch(BaseModel):
 class IngestionAck(BaseModel):
     accepted_events: int
     queued_topic: str
+    queue_status: str
     received_at: datetime
     services_seen: list[str]
 

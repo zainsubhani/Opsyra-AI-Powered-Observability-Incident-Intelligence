@@ -1,7 +1,10 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from opsyra_common.database import init_database
 
 tags_metadata = [
     {
@@ -15,10 +18,17 @@ tags_metadata = [
 ]
 
 
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    init_database()
+    yield
+
+
 app = FastAPI(
     title=settings.app_name,
     version=settings.version,
     description="Generates AI-assisted root cause analysis summaries.",
+    lifespan=lifespan,
     docs_url=settings.docs_url,
     redoc_url=settings.redoc_url,
     openapi_url=settings.openapi_url,

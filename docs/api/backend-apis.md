@@ -15,6 +15,7 @@ Each service ships with:
 - ReDoc at `/redoc`
 - OpenAPI schema at `/openapi.json`
 - a basic health endpoint at `/healthz`
+- optional API key protection for mutating endpoints using `X-API-Key`
 
 FastAPI already provides Swagger integration automatically, and the services are now configured with clearer tags, route descriptions, and example request bodies to make live API testing easier.
 
@@ -100,6 +101,12 @@ Install dependencies first:
 python3 -m pip install -r requirements.txt
 ```
 
+Copy the example environment first if you want the full local stack configuration:
+
+```bash
+cp .env.example .env
+```
+
 Run each service from its own folder because every service uses the package name `app`:
 
 ### Ingestion
@@ -157,6 +164,39 @@ Use the Swagger UI for each service to test endpoints interactively:
 5. Use the prefilled example payload.
 6. Click `Execute`.
 7. Inspect the request, response body, headers, and status code.
+
+If `API_KEY` is set in `.env`, include it in Swagger:
+
+- click `Authorize`
+- use the `X-API-Key` value from your environment
+
+## Docker Compose
+
+Bring up the local stack with:
+
+```bash
+docker compose up --build
+```
+
+This starts:
+
+- PostgreSQL
+- Redis
+- ingestion service
+- processing service
+- query service
+- AI RCA service
+- dashboard
+- Prometheus
+
+Primary local URLs:
+
+- Dashboard: `http://localhost:3000`
+- Ingestion Swagger: `http://localhost:8001/docs`
+- Processing Swagger: `http://localhost:8002/docs`
+- Query Swagger: `http://localhost:8003/docs`
+- AI RCA Swagger: `http://localhost:8004/docs`
+- Prometheus: `http://localhost:9090`
 
 ## Example Payloads
 

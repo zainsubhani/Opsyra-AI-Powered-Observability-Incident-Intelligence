@@ -1,0 +1,114 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-opsyra}
+      POSTGRES_USER: ${POSTGRES_USER:-opsyra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-opsyra}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  ingestion-service:
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://opsyra:opsyra@postgres:5432/opsyra}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    depends_on:
+      - postgres
+      - redis
+    working_dir: /workspace/apps/ingestion-service
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    ports:
+      - "8001:8001"
+
+  processing-service:
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://opsyra:opsyra@postgres:5432/opsyra}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      PROCESSING_ENABLE_CONSUMER: ${PROCESSING_ENABLE_CONSUMER:-true}
+    depends_on:
+      - postgres
+      - redis
+    working_dir: /workspace/apps/processing-service
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
+    ports:
+      - "8002:8002"
+
+  query-service:
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://opsyra:opsyra@postgres:5432/opsyra}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    depends_on:
+      - postgres
+    working_dir: /workspace/apps/query-service
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003"]
+    ports:
+      - "8003:8003"
+
+  ai-rca-service:
+    build:
+      context: .
+      dockerfile: infra/docker/python-service.Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://opsyra:opsyra@postgres:5432/opsyra}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    depends_on:
+      - postgres
+    working_dir: /workspace/apps/ai-rca-service
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004"]
+    ports:
+      - "8004:8004"
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: infra/docker/dashboard.Dockerfile
+    environment:
+      NEXT_PUBLIC_QUERY_SERVICE_URL: ${NEXT_PUBLIC_QUERY_SERVICE_URL:-http://localhost:8003}
+      NEXT_PUBLIC_AI_RCA_SERVICE_URL: ${NEXT_PUBLIC_AI_RCA_SERVICE_URL:-http://localhost:8004}
+      QUERY_SERVICE_INTERNAL_URL: ${QUERY_SERVICE_INTERNAL_URL:-http://query-service:8003}
+      AI_RCA_SERVICE_INTERNAL_URL: ${AI_RCA_SERVICE_INTERNAL_URL:-http://ai-rca-service:8004}
+      API_KEY: ${API_KEY:-opsyra-dev-key}
+    depends_on:
+      - query-service
+      - ai-rca-service
+    ports:
+      - "3000:3000"
+
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - ingestion-service
+      - processing-service
+      - query-service
+      - ai-rca-service
+
+volumes:
+  postgres_data:
