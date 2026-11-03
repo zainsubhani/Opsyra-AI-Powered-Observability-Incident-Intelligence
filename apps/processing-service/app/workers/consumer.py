@@ -1,8 +1,10 @@
 import json
+import logging
 import re
 import threading
 from datetime import datetime, timezone
 
+import sentry_sdk
 from sqlalchemy import func, select
 
 from opsyra_common.config import get_shared_settings
@@ -11,6 +13,8 @@ from opsyra_common.models import IncidentRecord
 from opsyra_common.queue import get_redis_client
 from opsyra_common.repository import create_incident, mark_telemetry_processed, upsert_service_snapshot
 
+
+logger = logging.getLogger(__name__)
 
 LATENCY_PATTERN = re.compile(r"(\d+)\s*ms", re.IGNORECASE)
 
@@ -69,9 +73,24 @@ class TelemetryConsumer:
 
             for _, entries in result:
                 for stream_id, entry in entries:
-                    payload = json.loads(entry["payload"])
-                    self._process_payload(payload)
+                    # Advance first: a message we cannot process must not be
+                    # replayed forever and block the stream behind it.
                     last_id = stream_id
+                    with sentry_sdk.start_transaction(
+                        op="queue.process", name="telemetry.consume"
+                    ) as transaction:
+                        transaction.set_tag("stream", settings.telemetry_stream_name)
+                        try:
+                            payload = json.loads(entry["payload"])
+                            self._process_payload(payload)
+                        except Exception:
+                            # Keep the consumer thread alive; a malformed or
+                            # unprocessable entry is reported, not fatal.
+                            transaction.set_status("internal_error")
+                            logger.exception(
+                                "Dropped telemetry entry %s: processing failed", stream_id
+                            )
+                            sentry_sdk.capture_exception()
 
     def _process_payload(self, payload: dict[str, str]) -> None:
         db = SessionLocal()

@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from opsyra_common.observability import init_sentry
 from opsyra_common.database import init_database
 
 tags_metadata = [
@@ -23,6 +24,8 @@ async def lifespan(_: FastAPI):
     init_database()
     yield
 
+
+init_sentry(settings.service_slug, settings.version)
 
 app = FastAPI(
     title=settings.app_name,
