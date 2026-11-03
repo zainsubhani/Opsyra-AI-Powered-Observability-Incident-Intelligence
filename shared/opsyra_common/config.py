@@ -15,6 +15,9 @@ class SharedSettings(BaseSettings):
     openai_api_key: str | None = None
     openai_model: str = "gpt-5.4"
     openai_base_url: str = "https://api.openai.com/v1"
+    sentry_dsn: str | None = None
+    sentry_environment: str = "local"
+    sentry_traces_sample_rate: float = 0.0
 
 
 @lru_cache

@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from opsyra_common.observability import init_sentry
 from app.workers.consumer import TelemetryConsumer
 from opsyra_common.config import get_shared_settings
 from opsyra_common.database import init_database
@@ -32,6 +33,8 @@ async def lifespan(_: FastAPI):
     if consumer is not None:
         consumer.stop()
 
+
+init_sentry(settings.service_slug, settings.version)
 
 app = FastAPI(
     title=settings.app_name,
